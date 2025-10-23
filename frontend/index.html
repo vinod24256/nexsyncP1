@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Ride Price Estimator</title>
 
-    <!-- 1. Tailwind CSS (For utility classes) -->
+    <!-- 1. Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
 
     <!-- 2. Leaflet.js (Map Library) -->
@@ -15,7 +15,21 @@
     />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-    <!-- 3. Our Custom Styles & Script -->
+    <!-- 3. Leaflet Routing Machine (for drawing routes) -->
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css"
+    />
+    <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
+
+    <!-- 4. NEW: Leaflet Geocoder (for address search) -->
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css"
+    />
+    <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
+
+    <!-- 5. Our Custom Styles & Script -->
     <link rel="stylesheet" href="style.css" />
     <script src="script.js" defer></script>
   </head>
@@ -27,8 +41,9 @@
       <!-- Header -->
       <div class="text-center mb-6">
         <h1 class="text-3xl font-bold text-gray-900">Ride Price Estimator</h1>
+        <!-- NEW: Updated instructions -->
         <p class="text-gray-500 mt-2">
-          Click a button, then the map to set your locations.
+          Search for a location, or click a button then the map.
         </p>
       </div>
 
@@ -59,7 +74,7 @@
         Get Price
       </button>
 
-      <!-- Results Area -->
+      <!-- Results Area (No changes here) -->
       <div id="results" class="mt-6 pt-6 border-t-2 border-gray-100 hidden">
         <!-- Loading Spinner -->
         <div id="loading-spinner" class="text-center hidden">
@@ -107,7 +122,6 @@
             $--.--
           </p>
 
-          <!-- This is the updated section -->
           <div class="flex justify-center gap-8 mt-4">
             <div>
               <p

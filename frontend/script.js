@@ -1,8 +1,5 @@
-// We wrap all our code in 'DOMContentLoaded' to make sure
-// the HTML is fully loaded before we try to find elements.
 document.addEventListener("DOMContentLoaded", () => {
   // --- 1. Get All DOM Elements ---
-  // We get all our HTML elements once and store them in constants.
   const mapElement = "map";
   const pickupBtn = document.getElementById("set-pickup");
   const dropoffBtn = document.getElementById("set-dropoff");
@@ -16,29 +13,25 @@ document.addEventListener("DOMContentLoaded", () => {
   const priceText = document.getElementById("price-text");
   const surgeText = document.getElementById("surge-text");
   const waitText = document.getElementById("wait-text");
-  const distanceText = document.getElementById("distance-text"); // <-- NEW element
+  const distanceText = document.getElementById("distance-text");
 
   // --- 2. Initialize State ---
-
-  // --- Back to New York City ---
   const map = L.map(mapElement).setView([40.7128, -74.006], 13); // New York
 
-  // Add the map "tiles" (the actual map image) from OpenStreetMap
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     attribution:
       '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
   }).addTo(map);
 
   // App state variables
-  let mode = "pickup"; // 'pickup' or 'dropoff'
+  let mode = "pickup";
   let pickupCoords = null;
   let dropoffCoords = null;
 
-  // Marker variables
-  let pickupMarker = null;
-  let dropoffMarker = null;
+  let routingControl = null;
+  let routeSummary = null;
 
-  // Custom icons for markers
+  // --- (Marker icons are the same) ---
   const greenIcon = L.icon({
     iconUrl:
       "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png",
@@ -61,13 +54,33 @@ document.addEventListener("DOMContentLoaded", () => {
     shadowSize: [41, 41],
   });
 
-  // Start with buttons in a clean state
+  // --- 3. NEW: Initialize Geocoder ---
+  // This adds the search bar
+  const geocoder = L.Control.geocoder({
+    defaultMarkGeocode: false, // We don't want its default pin
+    placeholder: "Search for an address...",
+    collapsed: false, // Keep it open by default
+    geocoder: L.Control.Geocoder.nominatim(), // Use the free Nominatim geocoder
+  })
+    .on("markgeocode", function (e) {
+      // --- THIS IS THE KEY ---
+      // When a user selects an address, this function runs.
+      const latlng = e.geocode.center;
+
+      // We check our app's 'mode' and call the correct function
+      if (mode === "pickup") {
+        setPickup(latlng);
+      } else {
+        setDropoff(latlng);
+      }
+    })
+    .addTo(map);
+
+  // --- 4. UI Helper Functions ---
+
   updateButtonState();
-  getPriceBtn.disabled = true; // Disabled until coords are set
+  getPriceBtn.disabled = true;
 
-  // --- 3. UI Helper Functions ---
-
-  // Manages the visual state of the 'pickup' and 'dropoff' buttons
   function updateButtonState() {
     if (mode === "pickup") {
       pickupBtn.classList.add("btn-active");
@@ -76,54 +89,65 @@ document.addEventListener("DOMContentLoaded", () => {
       dropoffBtn.classList.add("btn-active");
       pickupBtn.classList.remove("btn-active");
     }
-
-    // Enable 'Get Price' button ONLY if both coords are set
-    getPriceBtn.disabled = !(pickupCoords && dropoffCoords);
+    getPriceBtn.disabled = !routeSummary;
   }
 
-  // Creates or moves the green pickup marker
+  function drawRoute() {
+    if (routingControl) {
+      map.removeControl(routingControl);
+    }
+    if (!pickupCoords || !dropoffCoords) {
+      return;
+    }
+
+    routingControl = L.Routing.control({
+      waypoints: [
+        L.latLng(pickupCoords.lat, pickupCoords.lng),
+        L.latLng(dropoffCoords.lat, dropoffCoords.lng),
+      ],
+      createMarker: function (i, waypoint, n) {
+        const icon = i === 0 ? greenIcon : redIcon;
+        const title = i === 0 ? "Pickup" : "Dropoff";
+        return L.marker(waypoint.latLng, {
+          icon: icon,
+          title: title,
+          draggable: false,
+        });
+      },
+      show: false,
+      addWaypoints: false,
+      lineOptions: {
+        styles: [{ color: "#2563EB", opacity: 0.8, weight: 6 }],
+      },
+    }).addTo(map);
+
+    routingControl.on("routesfound", (e) => {
+      routeSummary = e.routes[0].summary;
+      console.log("Route found:", routeSummary);
+      updateButtonState();
+    });
+
+    routingControl.on("routingerror", (e) => {
+      showError("Could not find a route. Please try different locations.");
+      routeSummary = null;
+      updateButtonState();
+    });
+  }
+
   function setPickup(latlng) {
     pickupCoords = latlng;
-    if (pickupMarker) {
-      pickupMarker.setLatLng(latlng); // Move existing marker
-    } else {
-      // Create new marker
-      pickupMarker = L.marker(latlng, { icon: greenIcon }).addTo(map);
-    }
-    pickupMarker
-      .bindPopup(
-        `<b>Pickup Location</b><br>${latlng.lat.toFixed(
-          4
-        )}, ${latlng.lng.toFixed(4)}`
-      )
-      .openPopup();
-
-    // UX: Automatically switch to dropoff mode
-    mode = "dropoff";
+    mode = "dropoff"; // Auto-switch to dropoff
+    drawRoute();
     updateButtonState();
   }
 
-  // Creates or moves the red dropoff marker
   function setDropoff(latlng) {
     dropoffCoords = latlng;
-    if (dropoffMarker) {
-      dropoffMarker.setLatLng(latlng); // Move existing marker
-    } else {
-      // Create new marker
-      dropoffMarker = L.marker(latlng, { icon: redIcon }).addTo(map);
-    }
-    dropoffMarker
-      .bindPopup(
-        `<b>Dropoff Location</b><br>${latlng.lat.toFixed(
-          4
-        )}, ${latlng.lng.toFixed(4)}`
-      )
-      .openPopup();
-    updateButtonS;
-    tate();
+    drawRoute();
+    updateButtonState();
   }
 
-  // --- UI State Changers (Loading, Error, Success) ---
+  // --- (UI State Changers are the same) ---
 
   function showLoading() {
     resultsDiv.classList.remove("hidden");
@@ -132,10 +156,9 @@ document.addEventListener("DOMContentLoaded", () => {
     loadingSpinner.classList.remove("hidden");
   }
 
-  // Update showPrice to display distance
   function showPrice(data) {
     priceText.innerText = `$${data.estimated_price.toFixed(2)}`;
-    distanceText.innerText = `${data.distance_km} km`; // <-- NEW
+    distanceText.innerText = `${data.distance_km} km`;
     surgeText.innerText = `${data.surge_multiplier}x`;
     waitText.innerText = `${data.estimated_wait_time_minutes} min`;
 
@@ -147,29 +170,24 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function showError(message) {
     errorMessage.innerText = message;
-
     resultsDiv.classList.remove("hidden");
     loadingSpinner.classList.add("hidden");
     priceDisplay.classList.add("hidden");
     errorMessage.classList.remove("hidden");
   }
 
-  // --- 4. Event Listeners ---
-
-  // Set mode to 'pickup'
+  // --- 5. Event Listeners ---
   pickupBtn.addEventListener("click", () => {
     mode = "pickup";
     updateButtonState();
   });
 
-  // Set mode to 'dropoff'
   dropoffBtn.addEventListener("click", () => {
     mode = "dropoff";
-    updateButtonS;
-    tate();
+    updateButtonState();
   });
 
-  // Handle map clicks
+  // Clicking the map STILL WORKS
   map.on("click", (e) => {
     if (mode === "pickup") {
       setPickup(e.latlng);
@@ -178,28 +196,27 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // --- 5. THE API CALL (v2.0) ---
-  // This is the main event when 'Get Price' is clicked
+  // --- 6. THE API CALL (v4.0) ---
+  // (This function is exactly the same as v3.0)
   getPriceBtn.addEventListener("click", async () => {
-    if (!pickupCoords || !dropoffCoords) {
-      showError("Please set both pickup and dropoff locations.");
+    if (!routeSummary) {
+      showError("Please set pickup and dropoff to find a route first.");
       return;
     }
 
     showLoading();
 
-    // Add timestamp to the request
     const requestBody = {
       pickup_lat: pickupCoords.lat,
       pickup_lon: pickupCoords.lng,
       dropoff_lat: dropoffCoords.lat,
       dropoff_lon: dropoffCoords.lng,
-      timestamp: new Date().toISOString(), // <-- NEW
+      timestamp: new Date().toISOString(),
+      distance_km: routeSummary.totalDistance / 1000,
+      duration_minutes: routeSummary.totalTime / 60,
     };
 
     try {
-      // We 'fetch' data from our backend API.
-      // Make sure your backend (main.py) is running!
       const response = await fetch("http://127.0.0.1:8000/get_price", {
         method: "POST",
         headers: {
@@ -208,18 +225,12 @@ document.addEventListener("DOMContentLoaded", () => {
         body: JSON.stringify(requestBody),
       });
 
-      // Handle server errors (like 422 validation or 500)
       if (!response.ok) {
         const errorData = await response.json();
-        // 'errorData.detail' is what FastAPI sends
         throw new Error(errorData.detail || `Server error: ${response.status}`);
       }
 
-      // This is the "API Contract" (Output)
-      // We get the JSON data back from the backend.
       const data = await response.json();
-
-      // Success! Show the price.
       showPrice(data);
     } catch (error) {
       console.error("Error fetching price:", error);

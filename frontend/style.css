@@ -5,18 +5,12 @@ body {
   font-family: "Inter", sans-serif;
 }
 
-/* Give the map a defined height and a 'crosshair' cursor
-  for better UX, so the user knows it's clickable.
-*/
 #map {
   height: 400px;
   cursor: crosshair;
-  z-index: 0; /* Fixes a shadow bug with Leaflet markers */
+  z-index: 0;
 }
 
-/* This is the style for the *active* mode button (Pickup or Dropoff).
-  It gives clear feedback to the user about what mode they are in.
-*/
 .btn-mode.btn-active {
   background-color: #2563eb; /* Tailwind's blue-600 */
   color: white;
@@ -25,10 +19,6 @@ body {
   transform: scale(1.02);
 }
 
-/* This is the primary 'Get Price' button.
-  We give it custom styles for hover and disabled states
-  for a really polished feel.
-*/
 .btn-primary {
   background-color: #16a34a; /* Tailwind's green-600 */
   color: white;
@@ -54,4 +44,49 @@ body {
 .leaflet-marker-shadow {
   background: url(https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png)
     no-repeat 0 0;
+}
+
+/* This hides the ugly text directions from leaflet-routing-machine */
+.leaflet-routing-container {
+  display: none;
+}
+
+/* --- NEW v4.0 STYLES --- */
+/* Style the Geocoder search bar to match our app */
+
+/* The whole control box */
+.leaflet-control-geocoder {
+  border-radius: 0.5rem; /* 8px rounded corners */
+  border: 1px solid #d1d5db; /* gray-300 */
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  z-index: 1000 !important;
+}
+
+/* The search icon */
+.leaflet-control-geocoder-icon {
+  border-radius: 0.5rem 0 0 0.5rem;
+  background-color: #f9fafb; /* gray-50 */
+}
+
+/* The text input field */
+.leaflet-control-geocoder-form input {
+  height: 40px;
+  border: none;
+  padding-left: 10px;
+  color: #1f2937; /* gray-800 */
+  background-color: #ffffff; /* white */
+}
+
+/* The dropdown results */
+.leaflet-control-geocoder-alternatives {
+  border-radius: 0 0 0.5rem 0.5rem;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1),
+    0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  border-top: 1px solid #e5e7eb; /* gray-200 */
+}
+
+.leaflet-control-geocoder-alternatives li {
+  padding: 10px;
+  font-size: 14px;
 }
