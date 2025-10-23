@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ride Price Estimator</title>
+
+    <!-- 1. Tailwind CSS (For utility classes) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- 2. Leaflet.js (Map Library) -->
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <!-- 3. Our Custom Styles & Script -->
+    <link rel="stylesheet" href="style.css" />
+    <script src="script.js" defer></script>
+  </head>
+  <body class="bg-gray-100 flex items-center justify-center min-h-screen">
+    <!-- Main Application Card -->
+    <div
+      class="bg-white rounded-2xl shadow-2xl p-6 md:p-8 m-4 w-full max-w-2xl overflow-hidden"
+    >
+      <!-- Header -->
+      <div class="text-center mb-6">
+        <h1 class="text-3xl font-bold text-gray-900">Ride Price Estimator</h1>
+        <p class="text-gray-500 mt-2">
+          Click a button, then the map to set your locations.
+        </p>
+      </div>
+
+      <!-- Map Container -->
+      <div id="map" class="rounded-lg border-2 border-gray-200 z-0 mb-5"></div>
+
+      <!-- Button Controls -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
+        <button
+          id="set-pickup"
+          class="btn-mode w-full text-lg font-semibold py-3 px-4 rounded-lg border-2 border-blue-500 text-blue-600 hover:bg-blue-50 transition-all focus:outline-none"
+        >
+          1. Set Pickup
+        </button>
+        <button
+          id="set-dropoff"
+          class="btn-mode w-full text-lg font-semibold py-3 px-4 rounded-lg border-2 border-gray-300 text-gray-500 hover:bg-gray-50 transition-all focus:outline-none"
+        >
+          2. Set Dropoff
+        </button>
+      </div>
+
+      <!-- Get Price Button -->
+      <button
+        id="get-price"
+        class="btn-primary w-full text-xl font-bold py-4 px-6 rounded-lg transition-all"
+      >
+        Get Price
+      </button>
+
+      <!-- Results Area -->
+      <div id="results" class="mt-6 pt-6 border-t-2 border-gray-100 hidden">
+        <!-- Loading Spinner -->
+        <div id="loading-spinner" class="text-center hidden">
+          <svg
+            class="animate-spin h-8 w-8 text-blue-600 mx-auto"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+          >
+            <circle
+              class="opacity-25"
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              stroke-width="4"
+            ></circle>
+            <path
+              class="opacity-75"
+              fill="currentColor"
+              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+            ></path>
+          </svg>
+          <p class="text-gray-500 mt-2 text-sm font-medium">
+            Calculating price...
+          </p>
+        </div>
+
+        <!-- Error Message -->
+        <div
+          id="error-message"
+          class="text-center p-4 bg-red-50 text-red-700 rounded-lg hidden"
+        >
+          <!-- Error text will be set here -->
+        </div>
+
+        <!-- Price Display -->
+        <div id="price-display" class="text-center hidden">
+          <p
+            class="text-gray-500 text-sm uppercase font-semibold tracking-wide"
+          >
+            Estimated Fare
+          </p>
+          <p class="text-5xl font-extrabold text-gray-900 my-2" id="price-text">
+            $--.--
+          </p>
+
+          <!-- This is the updated section -->
+          <div class="flex justify-center gap-8 mt-4">
+            <div>
+              <p
+                class="text-gray-400 text-xs uppercase font-bold tracking-wider"
+              >
+                Distance
+              </p>
+              <p class="text-lg font-semibold text-gray-700" id="distance-text">
+                -- km
+              </p>
+            </div>
+            <div>
+              <p
+                class="text-gray-400 text-xs uppercase font-bold tracking-wider"
+              >
+                Surge
+              </p>
+              <p class="text-lg font-semibold text-gray-700" id="surge-text">
+                --x
+              </p>
+            </div>
+            <div>
+              <p
+                class="text-gray-400 text-xs uppercase font-bold tracking-wider"
+              >
+                Wait Time
+              </p>
+              <p class="text-lg font-semibold text-gray-700" id="wait-text">
+                -- min
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

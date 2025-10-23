@@ -1,0 +1,57 @@
+/* Import Google Font 'Inter' for a clean, modern UI */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap");
+
+body {
+  font-family: "Inter", sans-serif;
+}
+
+/* Give the map a defined height and a 'crosshair' cursor
+  for better UX, so the user knows it's clickable.
+*/
+#map {
+  height: 400px;
+  cursor: crosshair;
+  z-index: 0; /* Fixes a shadow bug with Leaflet markers */
+}
+
+/* This is the style for the *active* mode button (Pickup or Dropoff).
+  It gives clear feedback to the user about what mode they are in.
+*/
+.btn-mode.btn-active {
+  background-color: #2563eb; /* Tailwind's blue-600 */
+  color: white;
+  border-color: #2563eb;
+  box-shadow: 0 4px 14px 0 rgba(37, 99, 235, 0.3); /* Nice blue glow */
+  transform: scale(1.02);
+}
+
+/* This is the primary 'Get Price' button.
+  We give it custom styles for hover and disabled states
+  for a really polished feel.
+*/
+.btn-primary {
+  background-color: #16a34a; /* Tailwind's green-600 */
+  color: white;
+  transition: all 0.2s ease-in-out;
+}
+
+.btn-primary:hover {
+  background-color: #15803d; /* Tailwind's green-700 */
+  transform: translateY(-2px); /* Subtle lift */
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1),
+    0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+.btn-primary:disabled {
+  background-color: #d1d5db; /* Tailwind's gray-300 */
+  transform: none;
+  box-shadow: none;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+/* Fix for Leaflet's marker shadow path */
+.leaflet-marker-shadow {
+  background: url(https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png)
+    no-repeat 0 0;
+}
