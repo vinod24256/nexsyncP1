@@ -1,14 +1,14 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 import random
-from haversine import haversine, Unit
+import datetime
 
 # This allows your frontend (running on a different port) to talk to this backend
 from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
 
-# --- CORS Middleware ---
+# --- CORS Middleware (This is what prevents "Failed to fetch") ---
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"], # Allows all origins (for a prototype)
@@ -17,55 +17,76 @@ app.add_middleware(
     allow_headers=["*"], # Allows all headers
 )
 
-# --- 1. The API Contract (v3.0) ---
-# We now accept the REAL distance and duration from the frontend
+# --- 1. The NEW API Contract (INPUT) v5.0 ---
 class RideRequest(BaseModel):
-    pickup_lat: float = Field(..., ge=-90, le=90)
-    pickup_lon: float = Field(..., ge=-180, le=180)
-    dropoff_lat: float = Field(..., ge=-90, le=90)
-    dropoff_lon: float = Field(..., ge=-180, le=180)
-    timestamp: str  
-    
-    # --- NEW FIELDS ---
-    distance_km: float = Field(..., gt=0)
-    duration_minutes: float = Field(..., gt=0)
+    pickup_location: str
+    dropoff_location: str
+    datetime_str: str  # We'll send a string, e.g., "2025-10-25T18:30"
+    passenger_count: int
+    weather: str
+    ride_type: str
 
-# --- 2. The API Endpoint ---
-@app.post("/get_price")
+# --- 2. The NEW API Contract (OUTPUT) v5.0 ---
+class RideResponse(BaseModel):
+    surge_multiplier: float
+    estimated_price: float
+    base_fare: float
+    explanation: str
+
+# --- 3. The API Endpoint ---
+@app.post("/get_price", response_model=RideResponse)
 async def get_price(request: RideRequest):
     
-    # --- 3. Mock Logic ---
-    # The ML team will replace this.
-    # We NO LONGER calculate haversine. We use the real data.
+    # --- 4. MOCK LOGIC (v5.0) ---
+    # (This is what your ML team will replace)
     
-    print(f"[LOG] Received request for ride at {request.timestamp}")
-    print(f"  Real Distance: {request.distance_km:.2f} km")
-    print(f"  Real Duration: {request.duration_minutes:.2f} min")
+    print(f"[LOG] Received request:")
+    print(f"  Pickup: {request.pickup_location}")
+    print(f"  Dropoff: {request.dropoff_location}")
+    print(f"  Time: {request.datetime_str}")
+    print(f"  Weather: {request.weather}")
     
-    # Let's invent a fake pricing model
-    base_fare = 3.00           # $3.00 to start
-    cost_per_km = 1.50         # $1.50 per km
-    cost_per_minute = 0.40     # $0.40 per minute (for traffic)
+    base_fare = 15.0
+    surge_multiplier = 1.0
+    explanation = "Price is normal."
+
+    if request.ride_type == "Uber Black":
+        base_fare = 25.0
+        surge_multiplier *= 1.2
+        explanation = "Uber Black has a higher base fare."
     
-    random_surge = random.uniform(0.9, 1.5)
-    
-    # (The ML team will use the 'timestamp' to predict a *real* surge)
-    
-    # This price is now based on REAL route data!
-    price = (base_fare + (cost_per_km * request.distance_km) + (cost_per_minute * request.duration_minutes)) * random_surge
+    if request.pickup_location == "Financial District":
+        base_fare += 5.0
+        surge_multiplier *= 1.1
+        explanation = "High demand in Financial District."
+        
+    if request.weather == "Rainy":
+        surge_multiplier *= 1.3
+        explanation = "High demand due to rain."
+    if request.weather == "Snow":
+        surge_multiplier *= 1.5
+        explanation = "High demand and poor conditions due to snow."
+        
+    try:
+        trip_time = datetime.datetime.fromisoformat(request.datetime_str)
+        if 17 <= trip_time.hour < 19: # 5:00 PM - 7:00 PM
+            surge_multiplier *= 1.4
+            explanation = "High demand during evening rush hour."
+    except Exception as e:
+        print(f"Could not parse time: {e}")
+        
+    estimated_price = base_fare * surge_multiplier
     
     # --- END MOCK LOGIC ---
     
-    
-    # --- 4. The API Response (v3.0) ---
-    return {
-        "estimated_price": round(price, 2),
-        "surge_multiplier": round(random_surge, 2),
-        "estimated_wait_time_minutes": random.randint(3, 8),
-        "distance_km": round(request.distance_km, 2)
-    }
+    # --- 5. The API Response ---
+    return RideResponse(
+        surge_multiplier=round(surge_multiplier, 2),
+        estimated_price=round(estimated_price, 2),
+        base_fare=round(base_fare, 2),
+        explanation=explanation
+    )
 
-# A simple root endpoint to check if the server is running
 @app.get("/")
 def read_root():
-    return {"status": "Mock pricing server (v3.0) is running!"}
+    return {"status": "Mock pricing server (v5.1) is running!"}

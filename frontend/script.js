@@ -1,154 +1,103 @@
 document.addEventListener("DOMContentLoaded", () => {
   // --- 1. Get All DOM Elements ---
-  const mapElement = "map";
-  const pickupBtn = document.getElementById("set-pickup");
-  const dropoffBtn = document.getElementById("set-dropoff");
+  const form = document.getElementById("price-form");
   const getPriceBtn = document.getElementById("get-price");
+  const datetimeInput = document.getElementById("datetime");
+  const currentTimeCheckbox = document.getElementById("use-current-time");
 
+  // (Result elements are the same)
   const resultsDiv = document.getElementById("results");
   const loadingSpinner = document.getElementById("loading-spinner");
   const errorMessage = document.getElementById("error-message");
   const priceDisplay = document.getElementById("price-display");
 
   const priceText = document.getElementById("price-text");
+  const baseFareText = document.getElementById("base-fare-text");
   const surgeText = document.getElementById("surge-text");
-  const waitText = document.getElementById("wait-text");
-  const distanceText = document.getElementById("distance-text");
+  const explanationText = document.getElementById("explanation-text");
 
-  // --- 2. Initialize State ---
-  const map = L.map(mapElement).setView([40.7128, -74.006], 13); // New York
+  // --- 2. Event Listeners ---
 
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    attribution:
-      '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-  }).addTo(map);
-
-  // App state variables
-  let mode = "pickup";
-  let pickupCoords = null;
-  let dropoffCoords = null;
-
-  let routingControl = null;
-  let routeSummary = null;
-
-  // --- (Marker icons are the same) ---
-  const greenIcon = L.icon({
-    iconUrl:
-      "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png",
-    shadowUrl:
-      "https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png",
-    iconSize: [25, 41],
-    iconAnchor: [12, 41],
-    popupAnchor: [1, -34],
-    shadowSize: [41, 41],
-  });
-
-  const redIcon = L.icon({
-    iconUrl:
-      "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png",
-    shadowUrl:
-      "https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png",
-    iconSize: [25, 41],
-    iconAnchor: [12, 41],
-    popupAnchor: [1, -34],
-    shadowSize: [41, 41],
-  });
-
-  // --- 3. NEW: Initialize Geocoder ---
-  // This adds the search bar
-  const geocoder = L.Control.geocoder({
-    defaultMarkGeocode: false, // We don't want its default pin
-    placeholder: "Search for an address...",
-    collapsed: false, // Keep it open by default
-    geocoder: L.Control.Geocoder.nominatim(), // Use the free Nominatim geocoder
-  })
-    .on("markgeocode", function (e) {
-      // --- THIS IS THE KEY ---
-      // When a user selects an address, this function runs.
-      const latlng = e.geocode.center;
-
-      // We check our app's 'mode' and call the correct function
-      if (mode === "pickup") {
-        setPickup(latlng);
-      } else {
-        setDropoff(latlng);
-      }
-    })
-    .addTo(map);
-
-  // --- 4. UI Helper Functions ---
-
-  updateButtonState();
-  getPriceBtn.disabled = true;
-
-  function updateButtonState() {
-    if (mode === "pickup") {
-      pickupBtn.classList.add("btn-active");
-      dropoffBtn.classList.remove("btn-active");
+  // --- NEW v5.3 LOGIC ---
+  // This listener now fills in the time input
+  currentTimeCheckbox.addEventListener("change", () => {
+    if (currentTimeCheckbox.checked) {
+      // If checked, fill the input with the current time
+      datetimeInput.value = getFormattedLocalTime();
+      datetimeInput.disabled = true;
     } else {
-      dropoffBtn.classList.add("btn-active");
-      pickupBtn.classList.remove("btn-active");
+      // If unchecked, clear it and re-enable it
+      datetimeInput.value = "";
+      datetimeInput.disabled = false;
     }
-    getPriceBtn.disabled = !routeSummary;
-  }
+  });
+  // --- END OF CHANGE ---
 
-  function drawRoute() {
-    if (routingControl) {
-      map.removeControl(routingControl);
-    }
-    if (!pickupCoords || !dropoffCoords) {
+  // The main submit listener (no changes)
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    showLoading();
+
+    // --- 3. Get Form Data ---
+    const datetime_str = datetimeInput.value; // Just read the value
+
+    // Check if it's empty
+    if (!datetime_str) {
+      showError("Please select a date and time.");
       return;
     }
 
-    routingControl = L.Routing.control({
-      waypoints: [
-        L.latLng(pickupCoords.lat, pickupCoords.lng),
-        L.latLng(dropoffCoords.lat, dropoffCoords.lng),
-      ],
-      createMarker: function (i, waypoint, n) {
-        const icon = i === 0 ? greenIcon : redIcon;
-        const title = i === 0 ? "Pickup" : "Dropoff";
-        return L.marker(waypoint.latLng, {
-          icon: icon,
-          title: title,
-          draggable: false,
-        });
-      },
-      show: false,
-      addWaypoints: false,
-      lineOptions: {
-        styles: [{ color: "#2563EB", opacity: 0.8, weight: 6 }],
-      },
-    }).addTo(map);
+    // --- 4. THE API CONTRACT (INPUT) ---
+    const requestBody = {
+      pickup_location: document.getElementById("pickup-location").value,
+      dropoff_location: document.getElementById("dropoff-location").value,
+      datetime_str: datetime_str,
+      passenger_count: parseInt(
+        document.getElementById("passenger-count").value
+      ),
+      weather: document.getElementById("weather").value,
+      ride_type: document.getElementById("ride-type").value,
+    };
 
-    routingControl.on("routesfound", (e) => {
-      routeSummary = e.routes[0].summary;
-      console.log("Route found:", routeSummary);
-      updateButtonState();
-    });
+    // --- 5. THE API CALL (no changes) ---
+    try {
+      const response = await fetch("http://127.0.0.1:8000/get_price", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(requestBody),
+      });
 
-    routingControl.on("routingerror", (e) => {
-      showError("Could not find a route. Please try different locations.");
-      routeSummary = null;
-      updateButtonState();
-    });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || `Server error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      showPrice(data);
+    } catch (error) {
+      console.error("Fetch error details:", error);
+      showError(`Failed to get price. Check console (F12) for details.`);
+    }
+  });
+
+  // --- 4. Helper Functions ---
+
+  // --- NEW v5.3 HELPER FUNCTION ---
+  // This function creates the 'YYYY-MM-DDTHH:MM' string
+  // from the user's *local* time.
+  function getFormattedLocalTime() {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = (now.getMonth() + 1).toString().padStart(2, "0");
+    const day = now.getDate().toString().padStart(2, "0");
+    const hours = now.getHours().toString().padStart(2, "0");
+    const minutes = now.getMinutes().toString().padStart(2, "0");
+
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
   }
+  // --- END OF CHANGE ---
 
-  function setPickup(latlng) {
-    pickupCoords = latlng;
-    mode = "dropoff"; // Auto-switch to dropoff
-    drawRoute();
-    updateButtonState();
-  }
-
-  function setDropoff(latlng) {
-    dropoffCoords = latlng;
-    drawRoute();
-    updateButtonState();
-  }
-
-  // --- (UI State Changers are the same) ---
-
+  // --- UI State Changers (no changes) ---
   function showLoading() {
     resultsDiv.classList.remove("hidden");
     priceDisplay.classList.add("hidden");
@@ -157,10 +106,10 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function showPrice(data) {
-    priceText.innerText = `$${data.estimated_price.toFixed(2)}`;
-    distanceText.innerText = `${data.distance_km} km`;
+    priceText.innerText = data.estimated_price.toFixed(2);
+    baseFareText.innerText = data.base_fare.toFixed(2);
     surgeText.innerText = `${data.surge_multiplier}x`;
-    waitText.innerText = `${data.estimated_wait_time_minutes} min`;
+    explanationText.innerText = data.explanation;
 
     resultsDiv.classList.remove("hidden");
     loadingSpinner.classList.add("hidden");
@@ -175,66 +124,4 @@ document.addEventListener("DOMContentLoaded", () => {
     priceDisplay.classList.add("hidden");
     errorMessage.classList.remove("hidden");
   }
-
-  // --- 5. Event Listeners ---
-  pickupBtn.addEventListener("click", () => {
-    mode = "pickup";
-    updateButtonState();
-  });
-
-  dropoffBtn.addEventListener("click", () => {
-    mode = "dropoff";
-    updateButtonState();
-  });
-
-  // Clicking the map STILL WORKS
-  map.on("click", (e) => {
-    if (mode === "pickup") {
-      setPickup(e.latlng);
-    } else {
-      setDropoff(e.latlng);
-    }
-  });
-
-  // --- 6. THE API CALL (v4.0) ---
-  // (This function is exactly the same as v3.0)
-  getPriceBtn.addEventListener("click", async () => {
-    if (!routeSummary) {
-      showError("Please set pickup and dropoff to find a route first.");
-      return;
-    }
-
-    showLoading();
-
-    const requestBody = {
-      pickup_lat: pickupCoords.lat,
-      pickup_lon: pickupCoords.lng,
-      dropoff_lat: dropoffCoords.lat,
-      dropoff_lon: dropoffCoords.lng,
-      timestamp: new Date().toISOString(),
-      distance_km: routeSummary.totalDistance / 1000,
-      duration_minutes: routeSummary.totalTime / 60,
-    };
-
-    try {
-      const response = await fetch("http://127.0.0.1:8000/get_price", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(requestBody),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || `Server error: ${response.status}`);
-      }
-
-      const data = await response.json();
-      showPrice(data);
-    } catch (error) {
-      console.error("Error fetching price:", error);
-      showError(`Failed to get price. ${error.message}`);
-    }
-  });
 });

@@ -5,20 +5,51 @@ body {
   font-family: "Inter", sans-serif;
 }
 
-#map {
-  height: 400px;
-  cursor: crosshair;
-  z-index: 0;
+/* A label for a form input */
+.form-label {
+  display: block;
+  margin-bottom: 0.5rem; /* 8px */
+  font-size: 0.875rem; /* 14px */
+  font-weight: 600; /* semibold */
+  color: #374151; /* gray-700 */
 }
 
-.btn-mode.btn-active {
-  background-color: #2563eb; /* Tailwind's blue-600 */
-  color: white;
-  border-color: #2563eb;
-  box-shadow: 0 4px 14px 0 rgba(37, 99, 235, 0.3); /* Nice blue glow */
-  transform: scale(1.02);
+/* A dropdown or text input */
+.form-select {
+  display: block;
+  width: 100%;
+  padding: 0.75rem 1rem; /* 12px 16px */
+  border: 1px solid #d1d5db; /* gray-300 */
+  border-radius: 0.5rem; /* 8px */
+  background-color: #f9fafb; /* gray-50 */
+  color: #1f2937; /* gray-800 */
+  transition: border-color 0.2s;
+  -webkit-appearance: none; /* Removes default iOS styling */
+  -moz-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236B7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right 0.5rem center;
+  background-repeat: no-repeat;
+  background-size: 1.5em 1.5em;
+  padding-right: 2.5rem;
 }
 
+/* Style for the datetime-local picker */
+input[type="datetime-local"] {
+  background-image: none;
+  padding-right: 1rem;
+}
+
+/* --- NEW v5.3 STYLE --- */
+/* This makes the time input look good when disabled */
+.form-select:disabled {
+  background-color: #f3f4f6; /* gray-100 */
+  color: #6b7280; /* gray-500 */
+  cursor: not-allowed;
+}
+/* --- END OF CHANGE --- */
+
+/* The main submit button */
 .btn-primary {
   background-color: #16a34a; /* Tailwind's green-600 */
   color: white;
@@ -40,53 +71,13 @@ body {
   opacity: 0.7;
 }
 
-/* Fix for Leaflet's marker shadow path */
-.leaflet-marker-shadow {
-  background: url(https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png)
-    no-repeat 0 0;
-}
-
-/* This hides the ugly text directions from leaflet-routing-machine */
-.leaflet-routing-container {
-  display: none;
-}
-
-/* --- NEW v4.0 STYLES --- */
-/* Style the Geocoder search bar to match our app */
-
-/* The whole control box */
-.leaflet-control-geocoder {
-  border-radius: 0.5rem; /* 8px rounded corners */
-  border: 1px solid #d1d5db; /* gray-300 */
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
-    0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  z-index: 1000 !important;
-}
-
-/* The search icon */
-.leaflet-control-geocoder-icon {
-  border-radius: 0.5rem 0 0 0.5rem;
-  background-color: #f9fafb; /* gray-50 */
-}
-
-/* The text input field */
-.leaflet-control-geocoder-form input {
-  height: 40px;
-  border: none;
-  padding-left: 10px;
-  color: #1f2937; /* gray-800 */
-  background-color: #ffffff; /* white */
-}
-
-/* The dropdown results */
-.leaflet-control-geocoder-alternatives {
-  border-radius: 0 0 0.5rem 0.5rem;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1),
-    0 4px 6px -2px rgba(0, 0, 0, 0.05);
-  border-top: 1px solid #e5e7eb; /* gray-200 */
-}
-
-.leaflet-control-geocoder-alternatives li {
-  padding: 10px;
-  font-size: 14px;
+/* The "Why the price?" callout box */
+.result-callout {
+  margin-top: 1.5rem; /* 24px */
+  padding: 1rem; /* 16px */
+  background-color: #eff6ff; /* blue-50 */
+  border-left: 4px solid #3b82f6; /* blue-500 */
+  border-radius: 0 0.375rem 0.375rem 0; /* 0 6px 6px 0 */
+  text-align: left;
+  color: #1e40af; /* blue-800 */
 }
