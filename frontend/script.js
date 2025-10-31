@@ -1,53 +1,65 @@
 document.addEventListener("DOMContentLoaded", () => {
   // --- 1. Get All DOM Elements ---
   const form = document.getElementById("price-form");
-  const getPriceBtn = document.getElementById("get-price");
   const datetimeInput = document.getElementById("datetime");
   const currentTimeCheckbox = document.getElementById("use-current-time");
+  const rideCards = document.querySelectorAll(".ride-card");
 
-  // (Result elements are the same)
-  const resultsDiv = document.getElementById("results");
+  // --- Results elements (new IDs from Claude's HTML) ---
+  const resultsSection = document.getElementById("results");
   const loadingSpinner = document.getElementById("loading-spinner");
   const errorMessage = document.getElementById("error-message");
+  const errorText = document.getElementById("error-text");
   const priceDisplay = document.getElementById("price-display");
-
-  const priceText = document.getElementById("price-text");
-  const baseFareText = document.getElementById("base-fare-text");
-  const surgeText = document.getElementById("surge-text");
+  const priceAmount = document.getElementById("price-amount");
+  const baseFareValue = document.getElementById("base-fare-value");
+  const surgeValue = document.getElementById("surge-value");
   const explanationText = document.getElementById("explanation-text");
 
-  // --- 2. Event Listeners ---
+  // --- 2. State ---
+  let selectedRideType = "Standard"; // Default to Standard
 
-  // --- NEW v5.3 LOGIC ---
-  // This listener now fills in the time input
+  // --- 3. Initialize ---
+  function init() {
+    // Select first ride card by default
+    rideCards[0].classList.add("ride-card-selected");
+  }
+
+  // --- 4. Event Listeners ---
   currentTimeCheckbox.addEventListener("change", () => {
     if (currentTimeCheckbox.checked) {
-      // If checked, fill the input with the current time
       datetimeInput.value = getFormattedLocalTime();
       datetimeInput.disabled = true;
     } else {
-      // If unchecked, clear it and re-enable it
       datetimeInput.value = "";
       datetimeInput.disabled = false;
     }
   });
-  // --- END OF CHANGE ---
 
-  // The main submit listener (no changes)
+  rideCards.forEach((card) => {
+    card.addEventListener("click", () => {
+      selectedRideType = card.dataset.value;
+      rideCards.forEach((c) => c.classList.remove("ride-card-selected"));
+      card.classList.add("ride-card-selected");
+    });
+  });
+
   form.addEventListener("submit", async (e) => {
+    // Stop the page from reloading
     e.preventDefault();
-    showLoading();
 
-    // --- 3. Get Form Data ---
-    const datetime_str = datetimeInput.value; // Just read the value
-
-    // Check if it's empty
+    const datetime_str = datetimeInput.value;
     if (!datetime_str) {
       showError("Please select a date and time.");
       return;
     }
 
-    // --- 4. THE API CONTRACT (INPUT) ---
+    // Show the spinner
+    showLoading();
+
+    // --- 5. THE API CONTRACT (INPUT) ---
+    // This is the "Order" we send to the "Kitchen"
+    // This FIXES THE BUG by including 'ride_type'
     const requestBody = {
       pickup_location: document.getElementById("pickup-location").value,
       dropoff_location: document.getElementById("dropoff-location").value,
@@ -55,36 +67,41 @@ document.addEventListener("DOMContentLoaded", () => {
       passenger_count: parseInt(
         document.getElementById("passenger-count").value
       ),
-      weather: document.getElementById("weather").value,
-      ride_type: document.getElementById("ride-type").value,
+      ride_type: selectedRideType, // <-- BUG IS FIXED HERE
     };
 
-    // --- 5. THE API CALL (no changes) ---
+    // --- 6. THE API CALL ---
     try {
+      // "await" pauses the code and waits for the network
       const response = await fetch("http://127.0.0.1:8000/get_price", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(requestBody),
+        body: JSON.stringify(requestBody), // Send the "Order"
       });
 
+      // If the kitchen sends an error (like 422)
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.detail || `Server error: ${response.status}`);
       }
 
+      // Get the "Food" (price data) from the kitchen
       const data = await response.json();
+
+      // Deliver the food to the table
       showPrice(data);
     } catch (error) {
-      console.error("Fetch error details:", error);
-      showError(`Failed to get price. Check console (F12) for details.`);
+      // If the waiter drops the food (network error)
+      console.error("Fetch error:", error);
+      showError(
+        "Unable to calculate price. Please check your connection and try again."
+      );
     }
   });
 
-  // --- 4. Helper Functions ---
+  // --- 7. Helper Functions (Waiter's Tools) ---
 
-  // --- NEW v5.3 HELPER FUNCTION ---
-  // This function creates the 'YYYY-MM-DDTHH:MM' string
-  // from the user's *local* time.
+  // Tool 1: Get Local Time
   function getFormattedLocalTime() {
     const now = new Date();
     const year = now.getFullYear();
@@ -92,36 +109,44 @@ document.addEventListener("DOMContentLoaded", () => {
     const day = now.getDate().toString().padStart(2, "0");
     const hours = now.getHours().toString().padStart(2, "0");
     const minutes = now.getMinutes().toString().padStart(2, "0");
-
     return `${year}-${month}-${day}T${hours}:${minutes}`;
   }
-  // --- END OF CHANGE ---
 
-  // --- UI State Changers (no changes) ---
+  // Tool 2: Show the Spinner
   function showLoading() {
-    resultsDiv.classList.remove("hidden");
-    priceDisplay.classList.add("hidden");
-    errorMessage.classList.add("hidden");
+    resultsSection.classList.remove("hidden");
     loadingSpinner.classList.remove("hidden");
+    errorMessage.classList.add("hidden");
+    priceDisplay.classList.add("hidden");
   }
 
+  // Tool 3: Show the Final Price (using new HTML IDs)
   function showPrice(data) {
-    priceText.innerText = data.estimated_price.toFixed(2);
-    baseFareText.innerText = data.base_fare.toFixed(2);
-    surgeText.innerText = `${data.surge_multiplier}x`;
-    explanationText.innerText = data.explanation;
+    priceAmount.textContent = data.estimated_price.toFixed(2);
 
-    resultsDiv.classList.remove("hidden");
+    // --- THIS IS THE JAVASCRIPT BUG FIX ---
+    // Removed the "$" symbol to match your request
+    baseFareValue.textContent = data.base_fare.toFixed(2);
+    // --- END OF FIX ---
+
+    surgeValue.textContent = `${data.surge_multiplier}x`;
+    explanationText.textContent = data.explanation;
+
+    resultsSection.classList.remove("hidden");
     loadingSpinner.classList.add("hidden");
     errorMessage.classList.add("hidden");
     priceDisplay.classList.remove("hidden");
   }
 
+  // Tool 4: Show an Error (using new HTML IDs)
   function showError(message) {
-    errorMessage.innerText = message;
-    resultsDiv.classList.remove("hidden");
+    errorText.textContent = message;
+    resultsSection.classList.remove("hidden");
     loadingSpinner.classList.add("hidden");
     priceDisplay.classList.add("hidden");
     errorMessage.classList.remove("hidden");
   }
+
+  // --- 8. Initialize the App ---
+  init();
 });
